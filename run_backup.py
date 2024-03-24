@@ -85,5 +85,11 @@ class RedditWikiBackup:
         return page_names
 
 
+def main() -> None:
+    backupper = RedditWikiBackup()
+    backupper.run_backup()
+    return
+
+
 if __name__ == '__main__':
-    RedditWikiBackup().run_backup()
+    main()
