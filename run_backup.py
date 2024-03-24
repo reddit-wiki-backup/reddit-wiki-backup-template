@@ -6,8 +6,9 @@ import praw
 _WIKI_CONFIG_PAGES = ('config/', 'automoderator/')
 
 
-class TaskConfig:
-    FILEPATH = 'subreddits.ini'
+class Filepath:
+    TASK_CONFIG = 'subreddits.ini'
+    BACKUP_DIR = 'backup'
 
 
 class TaskConfigOption:
@@ -35,7 +36,7 @@ class RedditWikiBackup:
 
     def _read_config(self) -> None:
         self._config = configparser.ConfigParser()
-        self._config.read(TaskConfig.FILEPATH)
+        self._config.read(Filepath.TASK_CONFIG)
         return
 
     def _create_reddit_instance(self) -> None:
@@ -55,17 +56,25 @@ class RedditWikiBackup:
     def _download_one_subreddit_wiki(self, subreddit_name: str) -> None:
         subreddit = self._reddit.subreddit(subreddit_name)
         subreddit_wiki = subreddit.wiki
+        subreddit_backup_dir = os.path.join(Filepath.BACKUP_DIR, subreddit.display_name)
 
         try:
-            os.mkdir(subreddit.display_name)
+            os.mkdir(Filepath.BACKUP_DIR)
+        except FileExistsError:
+            pass
+
+        try:
+            os.mkdir(subreddit_backup_dir)
         except FileExistsError:
             pass
 
         for page_name in self._get_page_names(subreddit_name):
-            page_content = subreddit_wiki[page_name].content_md
-            filename = page_name.replace('/', '.')
-            with open(f'{subreddit.display_name}/{filename}.md', 'w', encoding='utf8') as f:
-                f.write(page_content)
+            filepath = os.path.join(subreddit_backup_dir, page_name.replace('/', '.'))
+            page = subreddit_wiki[page_name]
+            page_content = dict(md=page.content_md, html=page.content_html)
+            for ext, content in page_content.items():
+                with open('.'.join((filepath, ext)), 'w', encoding='utf8') as f:
+                    f.write(content)
 
         return
 
